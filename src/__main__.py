@@ -15,14 +15,7 @@ import hvac.exceptions  # type: ignore
 import requests.exceptions  # type: ignore
 import uvicorn
 import zstandard
-from fastapi import (
-    Depends,
-    FastAPI,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from typing_extensions import Annotated, Concatenate, ParamSpec
 
