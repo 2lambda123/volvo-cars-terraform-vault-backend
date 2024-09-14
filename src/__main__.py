@@ -224,7 +224,11 @@ class Vault:
 
     @classmethod
     def from_coerced_attrs(
-        cls: type[Vault], vault_url: str, mount_point: str, secrets_path: str, chunk_size: int
+        cls: type[Vault],
+        vault_url: str,
+        mount_point: str,
+        secrets_path: str,
+        chunk_size: int,
     ) -> Vault:
         """Return a Vault instance with attrs being coerced. Useful for CLI sanitizing."""
         return cls(
@@ -271,11 +275,15 @@ class Vault:
         logging.info("Acquiring lock...")
         try:
             self._mk_client(token).secrets.kv.v2.create_or_update_secret(
-                path=self.lock_path, secret=lock_data, mount_point=self.mount_point, cas=0
+                path=self.lock_path,
+                secret=lock_data,
+                mount_point=self.mount_point,
+                cas=0,
             )
         except hvac.exceptions.InvalidRequest as e:
             raise HTTPException(
-                status_code=status.HTTP_423_LOCKED, detail="Lock cannot be acquired: already locked"
+                status_code=status.HTTP_423_LOCKED,
+                detail="Lock cannot be acquired: already locked",
             ) from e
         logging.info("Acquired lock successfully!")
 
@@ -309,8 +317,9 @@ class Vault:
                     mount_point=self.mount_point,
                 )["data"]["keys"],
             )
-            logging.info("Found %d state chunks: %s", len(
-                chunk_keys), strtuple(chunk_keys))
+            logging.info(
+                "Found %d state chunks: %s", len(chunk_keys), strtuple(chunk_keys)
+            )
         except hvac.exceptions.InvalidPath as e:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="No state exists"
@@ -344,7 +353,8 @@ class Vault:
             )
             if data["data"]["metadata"]["deletion_time"] != "":
                 logging.info(
-                    "State chunk %s has been deleted, marked as invalid", chunk_key)
+                    "State chunk %s has been deleted, marked as invalid", chunk_key
+                )
             else:
                 logging.info("State chunk %s: is OK", chunk_key)
                 chunks[chunk_key] = data["data"]["data"]["value"]
@@ -361,8 +371,7 @@ class Vault:
         cut_off = len(data)
         logging.info("Chunk size probing starting at %d chars", cut_off)
         while True:
-            logging.info(
-                "Probing vault with a state chunk of %d chars...", cut_off)
+            logging.info("Probing vault with a state chunk of %d chars...", cut_off)
             probing_chunk = data[:cut_off]
             try:
                 self._mk_client(token).secrets.kv.v2.create_or_update_secret(
@@ -375,11 +384,13 @@ class Vault:
                     raise e from e
                 new_cut_off = cut_off // 2
                 logging.info(
-                    "Chunk length %d too long, retry with %d", cut_off, new_cut_off)
+                    "Chunk length %d too long, retry with %d", cut_off, new_cut_off
+                )
                 cut_off = new_cut_off
             else:
                 logging.info(
-                    "Chunk size probing succeeded: length of %d is OK!", cut_off)
+                    "Chunk size probing succeeded: length of %d is OK!", cut_off
+                )
                 return cut_off
 
     def _get_static_cut_off_(self) -> int:
@@ -394,10 +405,12 @@ class Vault:
         return self.chunk_size - 1000  # margin
 
     def _delete_old_chunks(self, token: str, chunks_done: int) -> None:
-        unset_chunk_keys = [k for k in self._get_chunk_keys(
-            token) if int(k) > (chunks_done - 1)]
-        logging.info("Marking unset chunks %s as deleted...",
-                     strtuple(unset_chunk_keys))
+        unset_chunk_keys = [
+            k for k in self._get_chunk_keys(token) if int(k) > (chunks_done - 1)
+        ]
+        logging.info(
+            "Marking unset chunks %s as deleted...", strtuple(unset_chunk_keys)
+        )
         for chunk_key in unset_chunk_keys:
             logging.info("Marking %s as deleted...", chunk_key)
             self._mk_client(token).secrets.kv.v2.delete_latest_version_of_secret(
@@ -428,7 +441,8 @@ class Vault:
             chunk_pos += cut_off
         else:  # don't probe
             logging.info(
-                "Chunk size probing disabled! Set at %d bytes.", self.chunk_size)
+                "Chunk size probing disabled! Set at %d bytes.", self.chunk_size
+            )
             cut_off = self._get_static_cut_off_()
 
         while chunk_pos < len(packed_state):
@@ -474,10 +488,15 @@ def start() -> None:
         default="secret/",
     )
     parser.add_argument(
-        "--host", help="The host address to bind to. Defaults to '127.0.0.1'.", default="127.0.0.1"
+        "--host",
+        help="The host address to bind to. Defaults to '127.0.0.1'.",
+        default="127.0.0.1",
     )
     parser.add_argument(
-        "--port", help="The port to bind to. Defaults to '8300'.", type=int, default=8300
+        "--port",
+        help="The port to bind to. Defaults to '8300'.",
+        type=int,
+        default=8300,
     )
     parser.add_argument(
         "--chunk-size",
@@ -530,9 +549,8 @@ def get_vault_token(credentials: SecurityDep) -> str:
     prefix = "hvs."
     if not token.startswith(prefix):
         msg = f"Vault token seems malformed; doesn't start with '{prefix}'!"
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-    logging.info("Got vault token hvs.(...)%s", token[len(token) - 3:])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    logging.info("Got vault token hvs.(...)%s", token[len(token) - 3 :])
     return token
 
 
