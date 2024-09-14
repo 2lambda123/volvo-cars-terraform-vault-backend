@@ -1,5 +1,4 @@
 """Implementation of a Vault backend for Terraform."""
-
 from __future__ import annotations
 
 import argparse
@@ -8,32 +7,37 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Collection, Iterable, TypeVar, cast
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Collection
+from typing import Iterable
+from typing import TypeVar
 
-import hvac  # type: ignore
 import hvac.exceptions  # type: ignore
 import requests.exceptions  # type: ignore
 import uvicorn
 import zstandard
-from fastapi import (
-    Depends,
-    FastAPI,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from typing_extensions import Annotated, Concatenate, ParamSpec
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
+from fastapi import status
+from fastapi.security import HTTPBasic
+from fastapi.security import HTTPBasicCredentials
+from typing_extensions import Annotated
+from typing_extensions import Concatenate
+from typing_extensions import ParamSpec
 
 LockData = Any
 StateData = Any
 
-
 STATE_ENCODING = "utf-8"
 ZSTD_COMPRESSLEVEL = 9
 FORMAT_VERSION = "v1"
-SERIALIZED_STATE_PIECES = 2  # number of distinct pieces to a serialized state: version + payload
+# number of distinct pieces to a serialized state: version + payload
+SERIALIZED_STATE_PIECES = 2
 
 
 class StateFormatError(ValueError):
@@ -59,9 +63,8 @@ class UnsupportedFormatVersionError(StateFormatError):
 def strtuple(xs: Iterable[Any]) -> str:
     """Make a tuple-looking string representation of an iterable.
 
-    Args:
-    ----
-        xs: The iterable to stringify
+    :param xs: The iterable to stringify
+    :param xs: Iterable[Any]:
 
     """
     return f"({', '.join(xs)})"
@@ -72,9 +75,8 @@ def pack_state(o: Any) -> str:
 
     This function is the inverse of unpack_state.
 
-    Args:
-    ----
-        o: the object to stringify.
+    :param o: the object to stringify.
+    :param o: Any:
 
     """
     json_str = json.dumps(o)
@@ -90,9 +92,8 @@ def unpack_state(state: str) -> Any:
 
     This function is the inverse of pack_state.
 
-    Args:
-    ----
-        state: The compressed and versioned state.
+    :param state: The compressed and versioned state.
+    :param state: str:
 
     """
     version_and_payload = state.split(":", 1)
@@ -111,6 +112,11 @@ def unpack_state(state: str) -> Any:
 
 
 def _make_path(*parts: Any) -> str:
+    """
+
+    :param *parts: Any:
+
+    """
     return "/".join(str(part) for part in parts if str(part))
 
 
@@ -119,9 +125,20 @@ T = TypeVar("T")
 
 
 def raise_bad_connection(f: Callable[P, T]) -> Callable[P, T]:
-    """Convert connection errors to HTTPExceptions in decorated function."""
+    """Convert connection errors to HTTPExceptions in decorated function.
+
+    :param f: Callable[P:
+    :param T]:
+
+    """
 
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        """
+
+        :param *args: P.args:
+        :param **kwargs: P.kwargs:
+
+        """
         try:
             return f(*args, **kwargs)
         except requests.exceptions.ConnectionError as e:
@@ -129,7 +146,8 @@ def raise_bad_connection(f: Callable[P, T]) -> Callable[P, T]:
         except hvac.exceptions.Forbidden as e:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Vault authentication failed. Bad token or insufficient token scope.",
+                detail=
+                "Vault authentication failed. Bad token or insufficient token scope.",
             ) from e
 
     return wrapper
@@ -138,10 +156,25 @@ def raise_bad_connection(f: Callable[P, T]) -> Callable[P, T]:
 X = TypeVar("X")
 
 
-def coercer(f: Callable[Concatenate[X, P], T]) -> Callable[Concatenate[X, P], T]:
-    """Attr coercion wrapper with logging."""
+def coercer(
+        f: Callable[Concatenate[X, P], T]) -> Callable[Concatenate[X, P], T]:
+    """Attr coercion wrapper with logging.
+
+    :param f: Callable[Concatenate[X:
+    :param P]:
+    :param T]:
+
+    """
 
     def wrapper(x: X, /, *args: P.args, **kwargs: P.kwargs) -> T:
+        """
+
+        :param x: X:
+        :param /:
+        :param *args: P.args:
+        :param **kwargs: P.kwargs:
+
+        """
         fstatic = f.__get__(object)
         y = cast(T, fstatic(x, *args, **kwargs))
         if y != x:
@@ -156,9 +189,8 @@ def coercer(f: Callable[Concatenate[X, P], T]) -> Callable[Concatenate[X, P], T]
 def is_maxlimit_error(e: hvac.exceptions.InternalServerError) -> bool:
     """Check if a Vault error seems to be about the state being too large.
 
-    Args:
-    ----
-        e: The error being checked.
+    :param e: The error being checked.
+    :param e: hvac.exceptions.InternalServerError:
 
     """
     too_large = "put failed due to value being too large"
@@ -171,16 +203,7 @@ def is_maxlimit_error(e: hvac.exceptions.InternalServerError) -> bool:
 
 @dataclass(frozen=True)
 class Vault:
-    """Implementation class of a Vault backend for Terraform.
-
-    Attributes
-    ----------
-        vault_url: An URL to a Vault instance.
-        mount_point: Where the secrets store is mounted.
-        secrets_path: The path to the terraform data.
-        chunk_size: Size of the state chunks. Dynamically probe for chunk size if set to -1.
-
-    """
+    """Implementation class of a Vault backend for Terraform."""
 
     vault_url: str
     mount_point: str
@@ -208,24 +231,50 @@ class Vault:
         -------
             The path to the chunk.
 
+        :param chunk: int | str:
+
+
         """
         return _make_path(self.state_path, chunk)
 
     @coercer
     @staticmethod
     def _vault_url_coercer(vault_url: str) -> str:
-        return vault_url if vault_url.startswith("http") else f"https://{vault_url}"
+        """
+
+        :param vault_url: str:
+
+        """
+        return vault_url if vault_url.startswith(
+            "http") else f"https://{vault_url}"
 
     @coercer
     @staticmethod
     def _url_path_coercer(url_path: str) -> str:
+        """
+
+        :param url_path: str:
+
+        """
         return url_path.strip("/")
 
     @classmethod
     def from_coerced_attrs(
-        cls: type[Vault], vault_url: str, mount_point: str, secrets_path: str, chunk_size: int
+        cls: type[Vault],
+        vault_url: str,
+        mount_point: str,
+        secrets_path: str,
+        chunk_size: int,
     ) -> Vault:
-        """Return a Vault instance with attrs being coerced. Useful for CLI sanitizing."""
+        """
+
+        :param cls: type[Vault]:
+        :param vault_url: str:
+        :param mount_point: str:
+        :param secrets_path: str:
+        :param chunk_size: int:
+
+        """
         return cls(
             vault_url=cls._vault_url_coercer(vault_url),
             mount_point=cls._url_path_coercer(mount_point),
@@ -236,21 +285,25 @@ class Vault:
     def _mk_client(self, token: str) -> hvac.Client:
         """Get an instance of a Vault client.
 
-        Args:
-        ----
-        token: the vault token to use for authentication.
+        :param token: the vault token to use for authentication.
+        :param token: str:
 
         """
         return hvac.Client(url=self.vault_url, token=token)
 
     @raise_bad_connection
     def get_lock_data(self, token: str) -> LockData:
-        """Return the lock data."""
+        """
+
+        :param token: str:
+
+        """
         logging.info("Getting lock data from vault...")
         return self._mk_client(token).secrets.kv.v2.read_secret_version(
             path=self.lock_path,
             mount_point=self.mount_point,
-            raise_on_deleted_version=True,  # default will change to false in the near future
+            raise_on_deleted_version=
+            True,  # default will change to false in the near future
         )["data"]["data"]
 
     @raise_bad_connection
@@ -266,15 +319,23 @@ class Vault:
         ------
             HTTPException: Lock is already locked.
 
+        :param token: str:
+        :param lock_data: LockData:
+
+
         """
         logging.info("Acquiring lock...")
         try:
             self._mk_client(token).secrets.kv.v2.create_or_update_secret(
-                path=self.lock_path, secret=lock_data, mount_point=self.mount_point, cas=0
+                path=self.lock_path,
+                secret=lock_data,
+                mount_point=self.mount_point,
+                cas=0,
             )
         except hvac.exceptions.InvalidRequest as e:
             raise HTTPException(
-                status_code=status.HTTP_423_LOCKED, detail="Lock cannot be acquired: already locked"
+                status_code=status.HTTP_423_LOCKED,
+                detail="Lock cannot be acquired: already locked",
             ) from e
         logging.info("Acquired lock successfully!")
 
@@ -290,15 +351,22 @@ class Vault:
         ------
             HTTPException: No state exists
 
+        :param token: str:
+
+
         """
         logging.info("Releasing lock...")
         self._mk_client(token).secrets.kv.v2.delete_metadata_and_all_versions(
-            path=self.lock_path, mount_point=self.mount_point
-        )
+            path=self.lock_path, mount_point=self.mount_point)
         logging.info("Lock released!")
 
     @raise_bad_connection
     def _get_chunk_keys(self, token: str) -> Iterable[str]:
+        """
+
+        :param token: str:
+
+        """
         logging.info("Looking for state chunks...")
         try:
             chunk_keys = cast(
@@ -308,11 +376,11 @@ class Vault:
                     mount_point=self.mount_point,
                 )["data"]["keys"],
             )
-            logging.info("Found %d state chunks: %s", len(chunk_keys), strtuple(chunk_keys))
+            logging.info("Found %d state chunks: %s", len(chunk_keys),
+                         strtuple(chunk_keys))
         except hvac.exceptions.InvalidPath as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="No state exists"
-            ) from e
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="No state exists") from e
         else:
             return chunk_keys
 
@@ -328,10 +396,14 @@ class Vault:
         ------
             HTTPException: State does not exist.
 
+        :param token: str:
+
+
         """
         logging.info("Getting state...")
         chunks: dict[str, str | None] = {
-            chunk_key: None for chunk_key in self._get_chunk_keys(token)
+            chunk_key: None
+            for chunk_key in self._get_chunk_keys(token)
         }
         for chunk_key in chunks:
             logging.info("Getting state chunk %s...", chunk_key)
@@ -341,7 +413,9 @@ class Vault:
                 raise_on_deleted_version=False,
             )
             if data["data"]["metadata"]["deletion_time"] != "":
-                logging.info("State chunk %s has been deleted, marked as invalid", chunk_key)
+                logging.info(
+                    "State chunk %s has been deleted, marked as invalid",
+                    chunk_key)
             else:
                 logging.info("State chunk %s: is OK", chunk_key)
                 chunks[chunk_key] = data["data"]["data"]["value"]
@@ -355,10 +429,17 @@ class Vault:
         return unpack_state("".join(valid_chunks.values())) or {}
 
     def _chunk_size_probe(self, token: str, data: str) -> int:
+        """
+
+        :param token: str:
+        :param data: str:
+
+        """
         cut_off = len(data)
         logging.info("Chunk size probing starting at %d chars", cut_off)
         while True:
-            logging.info("Probing vault with a state chunk of %d chars...", cut_off)
+            logging.info("Probing vault with a state chunk of %d chars...",
+                         cut_off)
             probing_chunk = data[:cut_off]
             try:
                 self._mk_client(token).secrets.kv.v2.create_or_update_secret(
@@ -370,13 +451,17 @@ class Vault:
                 if not is_maxlimit_error(e):
                     raise e from e
                 new_cut_off = cut_off // 2
-                logging.info("Chunk length %d too long, retry with %d", cut_off, new_cut_off)
+                logging.info("Chunk length %d too long, retry with %d",
+                             cut_off, new_cut_off)
                 cut_off = new_cut_off
             else:
-                logging.info("Chunk size probing succeeded: length of %d is OK!", cut_off)
+                logging.info(
+                    "Chunk size probing succeeded: length of %d is OK!",
+                    cut_off)
                 return cut_off
 
     def _get_static_cut_off_(self) -> int:
+        """ """
         # Assume that we use UTF8. This means that each char is stored as one (1) byte,
         # i.e. the length of a string equals its size in bytes.
         # That means, for example, that a secret store with a
@@ -388,23 +473,34 @@ class Vault:
         return self.chunk_size - 1000  # margin
 
     def _delete_old_chunks(self, token: str, chunks_done: int) -> None:
-        unset_chunk_keys = [k for k in self._get_chunk_keys(token) if int(k) > (chunks_done - 1)]
-        logging.info("Marking unset chunks %s as deleted...", strtuple(unset_chunk_keys))
+        """
+
+        :param token: str:
+        :param chunks_done: int:
+
+        """
+        unset_chunk_keys = [
+            k for k in self._get_chunk_keys(token)
+            if int(k) > (chunks_done - 1)
+        ]
+        logging.info("Marking unset chunks %s as deleted...",
+                     strtuple(unset_chunk_keys))
         for chunk_key in unset_chunk_keys:
             logging.info("Marking %s as deleted...", chunk_key)
-            self._mk_client(token).secrets.kv.v2.delete_latest_version_of_secret(
-                path=self.get_state_chunk_path(chunk_key), mount_point=self.mount_point
-            )
+            self._mk_client(
+                token).secrets.kv.v2.delete_latest_version_of_secret(
+                    path=self.get_state_chunk_path(chunk_key),
+                    mount_point=self.mount_point)
         logging.info("OK: Unset chunks marked as deleted.")
 
     @raise_bad_connection
     def set_state(self, token: str, value: Any) -> None:
         """Setter for Terraform state.
 
-        Args:
-        ----
-            token: the vault token to use for authentication.
-            value: The terraform state.
+        :param token: the vault token to use for authentication.
+        :param value: The terraform state.
+        :param token: str:
+        :param value: Any:
 
         """
         logging.info("Setting state...")
@@ -419,7 +515,8 @@ class Vault:
             chunks_done += 1
             chunk_pos += cut_off
         else:  # don't probe
-            logging.info("Chunk size probing disabled! Set at %d bytes.", self.chunk_size)
+            logging.info("Chunk size probing disabled! Set at %d bytes.",
+                         self.chunk_size)
             cut_off = self._get_static_cut_off_()
 
         while chunk_pos < len(packed_state):
@@ -450,13 +547,15 @@ def start() -> None:
                         - Optional.
                         - Overridable with --vault-url.
 
+
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter, description=start.__doc__
-    )
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=start.__doc__)
     parser.add_argument(
         "--vault-url",
-        help="URL to the Vault instance. Defaults to $VAULT_ADDR or '127.0.0.1:8200'",
+        help=
+        "URL to the Vault instance. Defaults to $VAULT_ADDR or '127.0.0.1:8200'",
         default=os.environ.get("VAULT_ADDR", "127.0.0.1:8200"),
     )
     parser.add_argument(
@@ -465,10 +564,15 @@ def start() -> None:
         default="secret/",
     )
     parser.add_argument(
-        "--host", help="The host address to bind to. Defaults to '127.0.0.1'.", default="127.0.0.1"
+        "--host",
+        help="The host address to bind to. Defaults to '127.0.0.1'.",
+        default="127.0.0.1",
     )
     parser.add_argument(
-        "--port", help="The port to bind to. Defaults to '8300'.", type=int, default=8300
+        "--port",
+        help="The port to bind to. Defaults to '8300'.",
+        type=int,
+        default=8300,
     )
     parser.add_argument(
         "--chunk-size",
@@ -502,7 +606,11 @@ def start() -> None:
 
 
 def get_vault(request: Request) -> Vault:
-    """Return vault instance for use as a FastAPI dependency."""
+    """
+
+    :param request: Request:
+
+    """
     vault = Vault.from_coerced_attrs(
         vault_url=request.app.state.vault_url,
         mount_point=request.app.state.mount_point,
@@ -516,13 +624,18 @@ SecurityDep = Annotated[HTTPBasicCredentials, Depends(HTTPBasic())]
 
 
 def get_vault_token(credentials: SecurityDep) -> str:
-    """Return vault token from HTTP Basic auth for use as a FastAPI dependency."""
+    """
+
+    :param credentials: SecurityDep:
+
+    """
     token: str = credentials.password
     prefix = "hvs."
     if not token.startswith(prefix):
         msg = f"Vault token seems malformed; doesn't start with '{prefix}'!"
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-    logging.info("Got vault token hvs.(...)%s", token[len(token) - 3 :])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=msg)
+    logging.info("Got vault token hvs.(...)%s", token[len(token) - 3:])
     return token
 
 
@@ -545,14 +658,14 @@ async def get_state(vault: VaultDep, token: TokenDep) -> StateData:
 
 
 @app.post("/state/{secrets_path:path}")
-async def update_state(request: Request, vault: VaultDep, token: TokenDep) -> None:
+async def update_state(request: Request, vault: VaultDep,
+                       token: TokenDep) -> None:
     """Update the Vault state."""
     try:
         data = await request.json()
     except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Recieved malformed JSON!"
-        ) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Recieved malformed JSON!") from e
     vault.set_state(token=token, value=data)
 
 
@@ -563,7 +676,8 @@ async def get_lock_info(vault: VaultDep, token: TokenDep) -> LockData:
 
 
 @app.post("/lock/{secrets_path:path}")
-async def acquire_lock(request: Request, vault: VaultDep, token: TokenDep) -> None:
+async def acquire_lock(request: Request, vault: VaultDep,
+                       token: TokenDep) -> None:
     """Acquire the lock for Terraform state."""
     data = await request.json()
     return vault.acquire_lock(token=token, lock_data=data)
