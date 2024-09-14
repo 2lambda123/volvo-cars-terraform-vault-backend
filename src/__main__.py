@@ -65,7 +65,7 @@ def strtuple(xs: Iterable[Any]) -> str:
     """Make a tuple-looking string representation of an iterable.
 
     :param xs: The iterable to stringify
-    :param xs: Iterable[Any]: 
+    :param xs: Iterable[Any]:
 
     """
     return f"({', '.join(xs)})"
@@ -73,11 +73,11 @@ def strtuple(xs: Iterable[Any]) -> str:
 
 def pack_state(o: Any) -> str:
     """Turn an object into a compressed base64-string.
-    
+
     This function is the inverse of unpack_state.
 
     :param o: the object to stringify.
-    :param o: Any: 
+    :param o: Any:
 
     """
     json_str = json.dumps(o)
@@ -90,11 +90,11 @@ def pack_state(o: Any) -> str:
 
 def unpack_state(state: str) -> Any:
     """Turn a compressed, version-prefixed Terraform state into a Python object.
-    
+
     This function is the inverse of pack_state.
 
     :param state: The compressed and versioned state.
-    :param state: str: 
+    :param state: str:
 
     """
     version_and_payload = state.split(":", 1)
@@ -115,7 +115,7 @@ def unpack_state(state: str) -> Any:
 def _make_path(*parts: Any) -> str:
     """
 
-    :param *parts: Any: 
+    :param *parts: Any:
 
     """
     return "/".join(str(part) for part in parts if str(part))
@@ -128,16 +128,16 @@ T = TypeVar("T")
 def raise_bad_connection(f: Callable[P, T]) -> Callable[P, T]:
     """Convert connection errors to HTTPExceptions in decorated function.
 
-    :param f: Callable[P: 
-    :param T]: 
+    :param f: Callable[P:
+    :param T]:
 
     """
 
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         """
 
-        :param *args: P.args: 
-        :param **kwargs: P.kwargs: 
+        :param *args: P.args:
+        :param **kwargs: P.kwargs:
 
         """
         try:
@@ -159,19 +159,19 @@ X = TypeVar("X")
 def coercer(f: Callable[Concatenate[X, P], T]) -> Callable[Concatenate[X, P], T]:
     """Attr coercion wrapper with logging.
 
-    :param f: Callable[Concatenate[X: 
-    :param P]: 
-    :param T]: 
+    :param f: Callable[Concatenate[X:
+    :param P]:
+    :param T]:
 
     """
 
     def wrapper(x: X, /, *args: P.args, **kwargs: P.kwargs) -> T:
         """
 
-        :param x: X: 
-        :param /: 
-        :param *args: P.args: 
-        :param **kwargs: P.kwargs: 
+        :param x: X:
+        :param /:
+        :param *args: P.args:
+        :param **kwargs: P.kwargs:
 
         """
         fstatic = f.__get__(object)
@@ -189,7 +189,7 @@ def is_maxlimit_error(e: hvac.exceptions.InternalServerError) -> bool:
     """Check if a Vault error seems to be about the state being too large.
 
     :param e: The error being checked.
-    :param e: hvac.exceptions.InternalServerError: 
+    :param e: hvac.exceptions.InternalServerError:
 
     """
     too_large = "put failed due to value being too large"
@@ -221,18 +221,18 @@ class Vault:
 
     def get_state_chunk_path(self, chunk: int | str) -> str:
         """Get the path of a state chunk.
-        
+
         Args:
         ----
             chunk: The chunk number.
-        
+
         Returns:
         -------
             The path to the chunk.
 
-        :param chunk: int | str: 
+        :param chunk: int | str:
 
-        
+
         """
         return _make_path(self.state_path, chunk)
 
@@ -241,7 +241,7 @@ class Vault:
     def _vault_url_coercer(vault_url: str) -> str:
         """
 
-        :param vault_url: str: 
+        :param vault_url: str:
 
         """
         return vault_url if vault_url.startswith("http") else f"https://{vault_url}"
@@ -251,7 +251,7 @@ class Vault:
     def _url_path_coercer(url_path: str) -> str:
         """
 
-        :param url_path: str: 
+        :param url_path: str:
 
         """
         return url_path.strip("/")
@@ -266,11 +266,11 @@ class Vault:
     ) -> Vault:
         """
 
-        :param cls: type[Vault]: 
-        :param vault_url: str: 
-        :param mount_point: str: 
-        :param secrets_path: str: 
-        :param chunk_size: int: 
+        :param cls: type[Vault]:
+        :param vault_url: str:
+        :param mount_point: str:
+        :param secrets_path: str:
+        :param chunk_size: int:
 
         """
         return cls(
@@ -284,7 +284,7 @@ class Vault:
         """Get an instance of a Vault client.
 
         :param token: the vault token to use for authentication.
-        :param token: str: 
+        :param token: str:
 
         """
         return hvac.Client(url=self.vault_url, token=token)
@@ -293,7 +293,7 @@ class Vault:
     def get_lock_data(self, token: str) -> LockData:
         """
 
-        :param token: str: 
+        :param token: str:
 
         """
         logging.info("Getting lock data from vault...")
@@ -306,20 +306,20 @@ class Vault:
     @raise_bad_connection
     def acquire_lock(self, token: str, lock_data: LockData) -> None:
         """Acquire the lock for the Terraform state.
-        
+
         Args:
         ----
             token: the vault token to use for authentication.
             lock_data: Metadata that identifies the lock.
-        
+
         Raises:
         ------
             HTTPException: Lock is already locked.
 
-        :param token: str: 
-        :param lock_data: LockData: 
+        :param token: str:
+        :param lock_data: LockData:
 
-        
+
         """
         logging.info("Acquiring lock...")
         try:
@@ -339,18 +339,18 @@ class Vault:
     @raise_bad_connection
     def release_lock(self, token: str) -> None:
         """Release the lock for the Terraform state.
-        
+
         Args:
         ----
             token: the vault token to use for authentication.
-        
+
         Raises:
         ------
             HTTPException: No state exists
 
-        :param token: str: 
+        :param token: str:
 
-        
+
         """
         logging.info("Releasing lock...")
         self._mk_client(token).secrets.kv.v2.delete_metadata_and_all_versions(
@@ -362,7 +362,7 @@ class Vault:
     def _get_chunk_keys(self, token: str) -> Iterable[str]:
         """
 
-        :param token: str: 
+        :param token: str:
 
         """
         logging.info("Looking for state chunks...")
@@ -387,18 +387,18 @@ class Vault:
     @raise_bad_connection
     def get_state(self, token: str) -> StateData:
         """Return the Terraform state.
-        
+
         Args:
         ----
             token: the vault token to use for authentication.
-        
+
         Raises:
         ------
             HTTPException: State does not exist.
 
-        :param token: str: 
+        :param token: str:
 
-        
+
         """
         logging.info("Getting state...")
         chunks: dict[str, str | None] = {
@@ -430,8 +430,8 @@ class Vault:
     def _chunk_size_probe(self, token: str, data: str) -> int:
         """
 
-        :param token: str: 
-        :param data: str: 
+        :param token: str:
+        :param data: str:
 
         """
         cut_off = len(data)
@@ -474,8 +474,8 @@ class Vault:
     def _delete_old_chunks(self, token: str, chunks_done: int) -> None:
         """
 
-        :param token: str: 
-        :param chunks_done: int: 
+        :param token: str:
+        :param chunks_done: int:
 
         """
         unset_chunk_keys = [
@@ -497,8 +497,8 @@ class Vault:
 
         :param token: the vault token to use for authentication.
         :param value: The terraform state.
-        :param token: str: 
-        :param value: Any: 
+        :param token: str:
+        :param value: Any:
 
         """
         logging.info("Setting state...")
@@ -539,7 +539,7 @@ app = FastAPI()
 
 def start() -> None:
     """HTTP Server for Terraform Vault backend.
-    
+
     Environment:
     ------------
         VAULT_ADDR:   Default Vault URL to connect to.
@@ -606,7 +606,7 @@ def start() -> None:
 def get_vault(request: Request) -> Vault:
     """
 
-    :param request: Request: 
+    :param request: Request:
 
     """
     vault = Vault.from_coerced_attrs(
@@ -624,7 +624,7 @@ SecurityDep = Annotated[HTTPBasicCredentials, Depends(HTTPBasic())]
 def get_vault_token(credentials: SecurityDep) -> str:
     """
 
-    :param credentials: SecurityDep: 
+    :param credentials: SecurityDep:
 
     """
     token: str = credentials.password
