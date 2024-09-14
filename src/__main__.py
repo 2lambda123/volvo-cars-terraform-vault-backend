@@ -1,5 +1,4 @@
 """Implementation of a Vault backend for Terraform."""
-
 from __future__ import annotations
 
 import argparse
@@ -8,16 +7,28 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Callable, Collection, Iterable, TypeVar, cast
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Collection
+from typing import Iterable
+from typing import TypeVar
 
-import hvac  # type: ignore
 import hvac.exceptions  # type: ignore
 import requests.exceptions  # type: ignore
 import uvicorn
 import zstandard
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from typing_extensions import Annotated, Concatenate, ParamSpec
+from fastapi import Depends
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi import Response
+from fastapi import status
+from fastapi.security import HTTPBasic
+from fastapi.security import HTTPBasicCredentials
+from typing_extensions import Annotated
+from typing_extensions import Concatenate
+from typing_extensions import ParamSpec
 
 LockData = Any
 StateData = Any
